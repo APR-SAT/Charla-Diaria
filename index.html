@@ -28,7 +28,7 @@
   .field input, .field select, .field textarea{
     width:100%;padding:10px 11px;border:1px solid var(--border);border-radius:7px;font-size:14px;
     font-family:inherit;background:#fbfcfd;}
-  .field textarea{resize:vertical;min-height:70px;overflow-wrap:break-word;word-wrap:break-word;overflow:hidden;}
+  .field textarea{resize:none;min-height:70px;overflow-wrap:break-word;word-wrap:break-word;overflow:hidden;box-sizing:border-box;}
   .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--navy-light);outline-offset:1px;}
   .field input[readonly]{background:var(--bg);color:#1c2433;}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
@@ -732,6 +732,19 @@ function toggleChip(btn){
 }
 
 // ---------- Firma táctil ----------
+// ---------- Auto-crecimiento de cajas de texto ----------
+function autoGrowTextarea(el){
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+function initAutoGrowTextareas(root){
+  (root || document).querySelectorAll('textarea').forEach(autoGrowTextarea);
+}
+document.addEventListener('input', function(e){
+  if(e.target && e.target.tagName === 'TEXTAREA') autoGrowTextarea(e.target);
+});
+document.addEventListener('DOMContentLoaded', function(){ initAutoGrowTextareas(); });
+
 const pads = {};
 function initSignaturePad(canvas){
   const ctx = canvas.getContext('2d');
@@ -739,10 +752,17 @@ function initSignaturePad(canvas){
   function resize(){
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const rect = canvas.getBoundingClientRect();
-    const prevData = has ? canvas.toDataURL() : null;
-    canvas.width = rect.width * ratio; canvas.height = rect.height * ratio;
+    const newWidth = Math.round(rect.width * ratio), newHeight = Math.round(rect.height * ratio);
+    // Evita borrar la firma si el tamaño no cambió realmente (p.ej. al aparecer el teclado en el celular)
+    if(newWidth === canvas.width && newHeight === canvas.height) return;
+    let prevImage = null;
+    if(canvas.width > 0 && canvas.height > 0){
+      try{ prevImage = ctx.getImageData(0,0,canvas.width,canvas.height); }catch(e){}
+    }
+    canvas.width = newWidth; canvas.height = newHeight;
     ctx.setTransform(1,0,0,1,0,0); ctx.scale(ratio, ratio);
     ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#16294a';
+    if(prevImage){ try{ ctx.putImageData(prevImage,0,0); }catch(e){} }
   }
   resize();
   window.addEventListener('resize', resize);
@@ -793,6 +813,7 @@ function nombreArchivo(){
   return `Charla_Diaria_${fecha}.pdf`;
 }
 async function construirPDFBlob(){
+  initAutoGrowTextareas();
   document.querySelectorAll('.no-print').forEach(el=>el.style.visibility='hidden');
   const el = document.getElementById('informe');
   const canvas = await html2canvas(el, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
@@ -823,8 +844,9 @@ async function descargarPDF(){
   toast('Generando PDF...');
   const blob = await construirPDFBlob();
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = nombreArchivo(); a.click();
-  URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href = url; a.download = nombreArchivo();
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
   toast('PDF descargado');
 }
 
@@ -864,8 +886,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 function descargarBlob(blob, filename){
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 </script>
 
