@@ -840,33 +840,48 @@ async function construirPDFBlob(){
   }
   return pdf.output('blob');
 }
-async function descargarPDF(){
-  toast('Generando PDF...');
-  const blob = await construirPDFBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = nombreArchivo();
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
-  toast('PDF descargado');
+async function descargarPDF() {
+    toast('Generando PDF...');
+    try {
+        const blob = await construirPDFBlob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = nombreArchivo();
+        
+        // CORRECCIÓN MÓVIL: Insertar físicamente en el DOM antes de hacer clic
+        document.body.appendChild(a); 
+        a.click(); 
+        
+        // Dar más tiempo (2 segundos) antes de remover y limpiar memoria
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 2000);
+        
+        toast('PDF descargado');
+    } catch (error) {
+        console.error(error);
+        toast('Error al descargar PDF');
+    }
 }
 
 
 // ====== Modal WhatsApp ======
 function abrirModalWA(){
-  document.getElementById('whatsappModal').style.display='flex';
-  document.getElementById('modalWhatsapp').focus();
+    const numeroPredeterminado = "56949805626"; 
+    const tituloFormulario = document.querySelector('h1')?.innerText || "Charla Diaria de Seguridad";
+    const fecha = document.querySelector('input[type="date"]')?.value || 'No especificada';
+    
+    let mensaje = `*📋 TECMAK SPA - REPORTE DE TERRENO*\n\n`;
+    mensaje += `*Documento:* ${tituloFormulario}\n`;
+    mensaje += `*Fecha de registro:* ${fecha}\n\n`;
+    mensaje += `_Nota: El PDF ha sido solicitado en el dispositivo._`;
+
+    const urlWhatsApp = `https://wa.me{numeroPredeterminado}?text=${encodeURIComponent(mensaje)}`;
+    window.open(urlWhatsApp, '_blank');
 }
-function cerrarModalWA(){
-  document.getElementById('whatsappModal').style.display='none';
-  document.getElementById('modalWhatsapp').value='';
-}
-async function enviarPorWA(){
-  const whatsapp = document.getElementById('modalWhatsapp').value.trim();
-  if(!whatsapp){
-    toast('Ingresa tu número de WhatsApp');
-    return;
-  }
-  cerrarModalWA();
+  
   toast('Generando PDF...');
   const blob = await construirPDFBlob();
   const filename = nombreArchivo();
