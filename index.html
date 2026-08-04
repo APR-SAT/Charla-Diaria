@@ -822,14 +822,11 @@ async function construirPDFBlob(){
   const margin = 6;
   const maxWidth = pageWidth - margin*2;
   const maxHeight = pageHeight - margin*2;
-  let imgWidth = maxWidth;
-  let imgHeight = canvas.height * imgWidth / canvas.width;
-  if(imgHeight > maxHeight){
-    imgHeight = maxHeight;
-    imgWidth = canvas.width * imgHeight / canvas.height;
-  }
-  const x = (pageWidth - imgWidth) / 2;
-  const y = (pageHeight - imgHeight) / 2;
+  // Estirar el informe para que ocupe toda la hoja (ancho y alto completos)
+  const imgWidth = maxWidth;
+  const imgHeight = maxHeight;
+  const x = margin;
+  const y = margin;
   pdf.addImage(imgData,'PNG',x,y,imgWidth,imgHeight);
   return pdf.output('blob');
 }
